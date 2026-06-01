@@ -505,7 +505,8 @@ export default function App() {
               <div className="mt-4 animate-mtrx-fade">
                 {analysis.contentType === 'video' ? (
                   <div className="space-y-3">
-                    {/* VIDEO PREVIEW CARD */}
+                    {/* VIDEO PREVIEW CARD — hidden for TikTok Ad Library (no usable thumbnail) */}
+                    {analysis.platform !== 'tiktok_ad' && (
                     <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-violet-950/40 bg-slate-100 dark:bg-purple-950/20 animate-mtrx-rise">
                       <div className="relative aspect-video bg-black">
                         {analysis.thumbnail ? (
@@ -538,6 +539,7 @@ export default function App() {
                         </div>
                       </div>
                     </div>
+                    )}
 
                     {/* VIDEO / AUDIO ROWS */}
                     <div className="flex flex-col sm:flex-row gap-2.5">
