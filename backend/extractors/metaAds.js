@@ -115,24 +115,36 @@ export async function analyze(url) {
 
     const meta = await page.evaluate(() => {
       const og = (p) => document.querySelector(`meta[property="${p}"]`)?.content || '';
-      const posters = Array.from(document.querySelectorAll('video[poster]'))
+      const videoEls = Array.from(document.querySelectorAll('video'));
+      const posters = videoEls
         .map((v) => v.getAttribute('poster'))
+        .filter(Boolean);
+      const domVideoSrcs = videoEls
+        .map((v) => v.currentSrc || v.src)
         .filter(Boolean);
       return {
         title: og('og:title') || document.title,
         description: og('og:description'),
         ogImage: og('og:image'),
         posters,
+        domVideoSrcs,
+        hasVideoEl: videoEls.length > 0,
       };
     });
 
     // Sort by area desc.
     const sortedImages = Array.from(allImages.values()).sort((a, b) => b.w * b.h - a.w * a.h);
 
+    // Only treat the ad as a video when the page actually rendered a <video>
+    // element. Image ads sometimes emit a stray fbcdn video response that would
+    // otherwise hijack classification into the video branch.
+    const domVideos = (meta.domVideoSrcs || []).filter(isCreativeVideo);
+    const videoUrls = meta.hasVideoEl ? [...domVideos, ...Array.from(videos)] : [];
+
     return {
       title: meta.title || 'Meta Ad',
       advertiser: meta.description || '',
-      videos: Array.from(videos),
+      videos: Array.from(new Set(videoUrls)),
       images: sortedImages.map((i) => ({ url: i.src, width: i.w, height: i.h })),
       posters: meta.posters,
       ogImage: meta.ogImage,
