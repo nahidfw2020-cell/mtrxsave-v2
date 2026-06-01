@@ -5,10 +5,15 @@ import { Errors } from '../utils/errors.js';
 export async function analyze(url) {
   const scraped = await withPage(async (page) => {
     const videos = new Set();
+    const netImages = []; // { url, bytes } captured from network for thumbnail fallback
     page.on('response', (resp) => {
       const ct = resp.headers()['content-type'] || '';
       const reqUrl = resp.url();
       if (/^video\//.test(ct) || /\.mp4(\?|$)/i.test(reqUrl)) videos.add(reqUrl);
+      if (/^image\//.test(ct) || /\.(jpe?g|png|webp)(\?|$)/i.test(reqUrl)) {
+        const bytes = Number(resp.headers()['content-length']) || 0;
+        netImages.push({ url: reqUrl, bytes });
+      }
     });
 
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 25000 }).catch(() => {});
@@ -31,6 +36,11 @@ export async function analyze(url) {
     });
 
     for (const v of meta.vids) videos.add(v);
+    // Largest network image first — TikTok ad pages rarely expose og:image but
+    // do load a poster/creative thumbnail over the network.
+    const bestNetImage = netImages
+      .filter((i) => !/sprite|icon|avatar|logo/i.test(i.url))
+      .sort((a, b) => b.bytes - a.bytes)[0]?.url || '';
     return {
       title: meta.title || 'TikTok Ad',
       advertiser: meta.description || '',
@@ -38,6 +48,7 @@ export async function analyze(url) {
       images: meta.imgs,
       posters: meta.posters,
       ogImage: meta.ogImage,
+      netImage: bestNetImage,
     };
   }, { timeoutMs: 30000 });
 
@@ -46,6 +57,7 @@ export async function analyze(url) {
       scraped.images[0]?.src
       || scraped.posters?.[0]
       || scraped.ogImage
+      || scraped.netImage
       || '';
     return {
       platform: 'tiktok_ad',

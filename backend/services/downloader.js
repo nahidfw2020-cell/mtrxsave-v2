@@ -276,12 +276,16 @@ export async function streamDirectVideo({ url, filename, platform }, req, res) {
  */
 export async function streamImage({ url, filename, inline = false }, req, res) {
   try {
+    let imgReferer;
+    try { imgReferer = new URL(url).origin + '/'; } catch {}
     const { body, statusCode, headers } = await request(url, {
       method: 'GET',
+      maxRedirections: 5,
       headers: {
         // CDNs (IG / FB / TikTok) frequently 403 on missing referer/UA. Fake a browser.
         'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
         'accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        ...(imgReferer ? { referer: imgReferer } : {}),
       },
     });
     if (statusCode >= 400) {
