@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+**/build
+**/.env
+**/.env.*
+!**/.env.example
+**/temp
+**/*.log
+.git
+.DS_Store
+index.html.bak
+.claude

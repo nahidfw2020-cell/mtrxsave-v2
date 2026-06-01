@@ -1,0 +1,28 @@
+[Unit]
+Description=NovaDL backend
+After=network.target
+
+[Service]
+Type=simple
+User=mtrxsave
+Group=mtrxsave
+WorkingDirectory=/opt/mtrxsave/backend
+EnvironmentFile=/opt/mtrxsave/backend/.env
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=15
+StandardOutput=append:/var/log/mtrxsave/out.log
+StandardError=append:/var/log/mtrxsave/err.log
+
+# Hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/opt/mtrxsave/backend/temp /var/log/mtrxsave
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

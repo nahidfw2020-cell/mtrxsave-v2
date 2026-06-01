@@ -1,0 +1,6 @@
+{
+  "name": "MtrxSave",
+  "description": "An elegant, high-fidelity all-in-one social video downloader designed to fetch and play media from TikTok, Instagram, Facebook, Pinterest, and Meta Ad Library.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

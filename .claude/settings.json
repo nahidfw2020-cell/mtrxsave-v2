@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --check server.js)",
+      "Bash(node --check routes/analyze.js)",
+      "Bash(node --check routes/download.js)",
+      "Bash(node --check extractors/index.js)",
+      "Bash(node server.js)",
+      "Bash(curl -s http://localhost:4000/api/health)",
+      "Bash(curl -s -X POST http://localhost:4000/api/analyze -H 'Content-Type: application/json' -d '{\"url\":\"https://www.youtube.com/watch?v=dQw4w9WgXcQ\"}')",
+      "Bash(python3 -m json.tool)",
+      "Bash(python3 -)",
+      "Bash(npx --prefix /usr tsc --noEmit -p \"/Users/nahidhasan/Documents/AI Research And Developement/Social media downloader/Version 2 design with Goggle AI STUDIO/novadl v2/tsconfig.json\")",
+      "Bash(python3 -c \"import json,sys;d=json.load\\(sys.stdin\\);print\\('preview:',d.get\\('previewUrl'\\),'thumb:',d.get\\('thumbnail'\\)[:80]\\)\")",
+      "Bash(node --check scripts/probe.js)",
+      "Bash(node --check services/downloader.js)",
+      "Bash(python3 -c \"import json,sys;d=json.load\\(sys.stdin\\);print\\('formats:'\\); [print\\(' ',f\\) for f in d['formats']]\")",
+      "Bash(curl -s -X POST http://localhost:4000/api/analyze -H 'Content-Type: application/json' -d '{\"url\":\"https://x.com/elonmusk/status/1815634517637595149\"}')",
+      "Bash(python3 -c \"import json,sys;d=json.load\\(sys.stdin\\);print\\('platform:',d.get\\('platform'\\),'type:',d.get\\('contentType'\\),'title:',\\(d.get\\('title'\\) or ''\\)[:60]\\)\")",
+      "Bash(curl -s -X POST http://localhost:4000/api/analyze -H 'Content-Type: application/json' -d '{\"url\":\"https://www.reddit.com/r/aww/comments/1iwk0u0/\"}')",
+      "Bash(node --check extractors/metaAds.js)",
+      "Bash(node --check extractors/instagram.js)",
+      "Bash(curl -s -X POST http://localhost:4000/api/analyze -H 'Content-Type: application/json' -d '{\"url\":\"https://www.instagram.com/p/DYmkD65vE1o/\"}')",
+      "Bash(cd \"/Users/nahidhasan/Documents/AI Research And Developement/Social media downloader/Version 2 design with Goggle AI STUDIO\" && find \"novadl v2\" -iname \"*novadl*\" -not -path \"*/node_modules/*\")",
+      "Read(//Users/nahidhasan/Documents/AI Research And Developement/Social media downloader/Version 2 design with Goggle AI STUDIO/**)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(pwd)",
+      "Bash(ls -la)",
+      "Read(//tmp/**)",
+      "Bash(curl -s -o /dev/null -w \"frontend HTTP %{http_code}\\\\n\" http://localhost:3000)",
+      "Bash(curl -s -o /dev/null -w \"PORT3000=%{http_code}\" http://localhost:3000)",
+      "Bash(curl -s -o /dev/null -w \"PORT4000=%{http_code}\" http://localhost:4000)",
+      "Bash(curl -s -o /dev/null -w \"PORT3000=%{http_code}\\\\n\" http://localhost:3000)"
+    ]
+  }
+}

@@ -1,0 +1,57 @@
+# NovaDL backend reverse proxy.
+# Place under /etc/nginx/sites-available/mtrxsave, symlink to sites-enabled/.
+
+upstream mtrxsave_backend {
+  server 127.0.0.1:4000;
+  keepalive 32;
+}
+
+server {
+  listen 443 ssl http2;
+  server_name api.mtrxsave.example;
+
+  ssl_certificate     /etc/letsencrypt/live/api.mtrxsave.example/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/api.mtrxsave.example/privkey.pem;
+
+  client_max_body_size 16k;
+
+  # JSON endpoints
+  location /api/analyze {
+    proxy_pass http://mtrxsave_backend;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_read_timeout 60s;
+  }
+
+  location /api/health {
+    proxy_pass http://mtrxsave_backend;
+    proxy_set_header Host $host;
+  }
+
+  # Streaming endpoint — buffering OFF, long timeout.
+  location /api/download {
+    proxy_pass http://mtrxsave_backend;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    proxy_buffering off;
+    proxy_request_buffering off;
+    proxy_read_timeout 1800s;
+    proxy_send_timeout 1800s;
+    chunked_transfer_encoding on;
+  }
+}
+
+server {
+  listen 80;
+  server_name api.mtrxsave.example;
+  return 301 https://$host$request_uri;
+}
