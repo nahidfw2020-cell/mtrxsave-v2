@@ -37,7 +37,7 @@ export const config = {
   ytdlpExtractorArgs:
     process.env.YTDLP_EXTRACTOR_ARGS !== undefined
       ? process.env.YTDLP_EXTRACTOR_ARGS
-      : 'youtube:player_client=default,tv,ios,web_safari',
+      : 'youtube:player_client=android',
 
   // Raw cookies.txt (Netscape format) content. If set, written to a temp file
   // at startup and passed to yt-dlp as --cookies (robust YouTube fix).
