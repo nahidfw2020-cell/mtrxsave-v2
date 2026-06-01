@@ -18,7 +18,22 @@ const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
 
-app.use(helmet({ crossOriginResourcePolicy: false }));
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+  // Allow the SPA to load external images (Cloudinary logo/cards, CDN thumbnails)
+  // and Google Fonts. Without this, helmet's default CSP blocks them.
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+      mediaSrc: ["'self'", 'data:', 'blob:', 'https:'],
+      fontSrc: ["'self'", 'https:', 'data:'],
+      styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      connectSrc: ["'self'", 'https:'],
+    },
+  },
+}));
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin) return cb(null, true);
