@@ -96,6 +96,22 @@ export async function analyze(url) {
       // Continue — may still find via scroll passes.
     }
 
+    // Brief settle so the target ad's own video can fire its request (no scroll
+    // yet, so the advertiser's other ads are not loaded).
+    await sleep(1500);
+
+    // Snapshot the TARGET ad's video state BEFORE scrolling. Scrolling lazy-loads
+    // the advertiser's OTHER ads, whose videos would otherwise pollute the
+    // classification and turn an image ad into a video result.
+    const earlyVideoState = await page.evaluate(() => {
+      const els = Array.from(document.querySelectorAll('video'));
+      return {
+        hasVideoEl: els.length > 0,
+        domVideoSrcs: els.map((v) => v.currentSrc || v.src).filter(Boolean),
+      };
+    });
+    const earlyNetVideos = Array.from(videos);
+
     // Multiple scroll passes to coax lazy-loaded card images.
     const allImages = new Map();
     for (let pass = 0; pass < 6; pass++) {
@@ -115,31 +131,25 @@ export async function analyze(url) {
 
     const meta = await page.evaluate(() => {
       const og = (p) => document.querySelector(`meta[property="${p}"]`)?.content || '';
-      const videoEls = Array.from(document.querySelectorAll('video'));
-      const posters = videoEls
+      const posters = Array.from(document.querySelectorAll('video[poster]'))
         .map((v) => v.getAttribute('poster'))
-        .filter(Boolean);
-      const domVideoSrcs = videoEls
-        .map((v) => v.currentSrc || v.src)
         .filter(Boolean);
       return {
         title: og('og:title') || document.title,
         description: og('og:description'),
         ogImage: og('og:image'),
         posters,
-        domVideoSrcs,
-        hasVideoEl: videoEls.length > 0,
       };
     });
 
     // Sort by area desc.
     const sortedImages = Array.from(allImages.values()).sort((a, b) => b.w * b.h - a.w * a.h);
 
-    // Only treat the ad as a video when the page actually rendered a <video>
-    // element. Image ads sometimes emit a stray fbcdn video response that would
-    // otherwise hijack classification into the video branch.
-    const domVideos = (meta.domVideoSrcs || []).filter(isCreativeVideo);
-    const videoUrls = meta.hasVideoEl ? [...domVideos, ...Array.from(videos)] : [];
+    // Classify as video only from the TARGET ad's pre-scroll state: a <video>
+    // element must have rendered, and we use only video URLs seen before the
+    // scroll passes loaded the advertiser's other (possibly video) ads.
+    const domVideos = (earlyVideoState.domVideoSrcs || []).filter(isCreativeVideo);
+    const videoUrls = earlyVideoState.hasVideoEl ? [...domVideos, ...earlyNetVideos] : [];
 
     return {
       title: meta.title || 'Meta Ad',
