@@ -4,7 +4,7 @@ import { downloadLimiter } from '../middleware/rateLimit.js';
 import { validateQuery } from '../middleware/validate.js';
 import { verifyToken } from '../services/tokens.js';
 import { getAnalyze } from '../services/analyzeCache.js';
-import { streamVideo, streamMp3, streamImage, streamCarouselZip } from '../services/downloader.js';
+import { streamVideo, streamDirectVideo, streamMp3, streamImage, streamCarouselZip } from '../services/downloader.js';
 import { Errors } from '../utils/errors.js';
 import { sanitizeFilename } from '../utils/filename.js';
 
@@ -37,6 +37,12 @@ downloadRouter.get('/', downloadLimiter, validateQuery(querySchema), (req, res, 
 
     switch (format.kind) {
       case 'video': {
+        // Ad-library creatives can't be handed to yt-dlp; analyze scraped the
+        // real mp4 URL into cached._directVideoUrl — proxy it straight through.
+        if (cached._directVideoUrl) {
+          streamDirectVideo({ url: cached._directVideoUrl, filename: `${baseName}.mp4`, platform: cached.platform }, req, res);
+          return;
+        }
         streamVideo({ url: payload.url, filename: `${baseName}.mp4`, platform: cached.platform }, req, res);
         return;
       }

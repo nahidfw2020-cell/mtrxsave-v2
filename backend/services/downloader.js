@@ -226,6 +226,50 @@ export function streamMp3({ url, filename, bitrate = 192, platform }, req, res) 
 }
 
 /**
+ * Direct video proxy: stream an already-resolved mp4 URL straight from the CDN.
+ * Used for ad-library creatives (TikTok Ad Library, Meta Ad Library) where the
+ * page itself can't be handed to yt-dlp — the real video URL was scraped during
+ * analyze and stored as cached._directVideoUrl.
+ */
+export async function streamDirectVideo({ url, filename, platform }, req, res) {
+  try {
+    let referer;
+    if (platform === 'tiktok_ad') referer = 'https://library.tiktok.com/';
+    else if (platform === 'meta_ad') referer = 'https://www.facebook.com/';
+    else { try { referer = new URL(url).origin + '/'; } catch {} }
+
+    const { body, statusCode, headers } = await request(url, {
+      method: 'GET',
+      maxRedirections: 5,
+      headers: {
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+        'accept': 'video/webm,video/mp4,video/*;q=0.9,*/*;q=0.8',
+        ...(referer ? { referer } : {}),
+      },
+    });
+    if (statusCode >= 400) {
+      throw Errors.contentUnavailable(`Video fetch failed: ${statusCode}`);
+    }
+    const safe = sanitizeFilename(filename || `mtrxsave_${Date.now()}.mp4`);
+    res.setHeader('Content-Type', headers['content-type'] || mimeFor('mp4'));
+    if (headers['content-length']) res.setHeader('Content-Length', headers['content-length']);
+    res.setHeader('Content-Disposition', attachmentHeader(safe.endsWith('.mp4') ? safe : `${safe}.mp4`));
+    res.setHeader('Cache-Control', 'no-store');
+    const abort = () => { try { body.destroy(); } catch {} };
+    req.on('close', abort);
+    res.on('close', abort);
+    body.pipe(res);
+  } catch (e) {
+    logger.warn({ reqId: req.id, platform, err: e.message }, 'direct video proxy failed');
+    if (!res.headersSent) {
+      res.status(e.status || 502).json({
+        error: { code: e.code || 'EXTRACTION_FAILED', message: e.message || 'Video stream failed' },
+      });
+    }
+  }
+}
+
+/**
  * Single image: proxy stream from CDN.
  * inline=true → omit attachment Content-Disposition so browsers render the
  * image instead of triggering a download (used for thumbnail previews).
