@@ -39,9 +39,12 @@ export const config = {
       ? process.env.YTDLP_EXTRACTOR_ARGS
       : 'youtube:player_client=android',
 
-  // Raw cookies.txt (Netscape format) content. If set, written to a temp file
-  // at startup and passed to yt-dlp as --cookies (robust YouTube fix).
+  // Cookies for yt-dlp (--cookies). Provide EITHER:
+  //   YOUTUBE_COOKIES      raw cookies.txt (Netscape, tab-separated) content
+  //   YOUTUBE_COOKIES_B64  the same file base64-encoded (survives env mangling)
+  // Written to a temp file at startup. Robust YouTube fix + unlocks HD.
   youtubeCookies: process.env.YOUTUBE_COOKIES || '',
+  youtubeCookiesB64: process.env.YOUTUBE_COOKIES_B64 || '',
 
   maxConcurrentYtdlp: num(process.env.MAX_CONCURRENT_YTDLP, 20),
   maxConcurrentPuppeteer: num(process.env.MAX_CONCURRENT_PUPPETEER, 3),
@@ -65,12 +68,28 @@ if (!config.tokenSecret || config.tokenSecret.length < 32) {
 // If cookies were supplied via env (and no explicit jar path), materialise them
 // to a temp file so yt-dlp can use --cookies. Survives a single container life,
 // which is all yt-dlp needs.
-if (config.youtubeCookies && !config.cookieJarPath) {
-  try {
-    const p = path.join(os.tmpdir(), 'yt-cookies.txt');
-    fs.writeFileSync(p, config.youtubeCookies, { mode: 0o600 });
-    config.cookieJarPath = p;
-  } catch {
-    // non-fatal: fall back to no cookies
+if (!config.cookieJarPath) {
+  let cookieText = config.youtubeCookies;
+  if (!cookieText && config.youtubeCookiesB64) {
+    try {
+      cookieText = Buffer.from(config.youtubeCookiesB64, 'base64').toString('utf8');
+    } catch {
+      /* ignore bad base64 */
+    }
   }
+  if (cookieText) {
+    try {
+      const p = path.join(os.tmpdir(), 'yt-cookies.txt');
+      fs.writeFileSync(p, cookieText, { mode: 0o600 });
+      config.cookieJarPath = p;
+    } catch {
+      // non-fatal: fall back to no cookies
+    }
+  }
+}
+
+// With valid cookies the default web client works and yields full HD, so drop
+// the android (≈360p) workaround unless the operator pinned it explicitly.
+if (config.cookieJarPath && process.env.YTDLP_EXTRACTOR_ARGS === undefined) {
+  config.ytdlpExtractorArgs = '';
 }
