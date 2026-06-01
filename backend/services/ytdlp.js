@@ -17,6 +17,7 @@ function gate() {
 
 function baseArgs() {
   const a = ['--no-warnings', '--no-progress', '--no-check-certificate'];
+  if (config.ytdlpExtractorArgs) a.push('--extractor-args', config.ytdlpExtractorArgs);
   if (config.cookieJarPath) a.push('--cookies', config.cookieJarPath);
   return a;
 }

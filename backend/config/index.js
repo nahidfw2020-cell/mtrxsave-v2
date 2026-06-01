@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import path from 'node:path';
+import os from 'node:os';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -29,6 +31,18 @@ export const config = {
   ffmpegPath: process.env.FFMPEG_PATH || 'ffmpeg',
   cookieJarPath: process.env.COOKIE_JAR_PATH || '',
 
+  // Extra yt-dlp --extractor-args. Default switches YouTube to player clients
+  // that often bypass the datacenter "Sign in to confirm you're not a bot"
+  // check. Override/disable via YTDLP_EXTRACTOR_ARGS (empty string = none).
+  ytdlpExtractorArgs:
+    process.env.YTDLP_EXTRACTOR_ARGS !== undefined
+      ? process.env.YTDLP_EXTRACTOR_ARGS
+      : 'youtube:player_client=default,tv,ios,web_safari',
+
+  // Raw cookies.txt (Netscape format) content. If set, written to a temp file
+  // at startup and passed to yt-dlp as --cookies (robust YouTube fix).
+  youtubeCookies: process.env.YOUTUBE_COOKIES || '',
+
   maxConcurrentYtdlp: num(process.env.MAX_CONCURRENT_YTDLP, 20),
   maxConcurrentPuppeteer: num(process.env.MAX_CONCURRENT_PUPPETEER, 3),
   perIpConcurrentDownloads: num(process.env.PER_IP_CONCURRENT_DOWNLOADS, 2),
@@ -46,4 +60,17 @@ if (!config.tokenSecret || config.tokenSecret.length < 32) {
   }
   // dev fallback (insecure)
   config.tokenSecret = 'dev-only-insecure-secret-do-not-use-in-prod-xxxxxxxx';
+}
+
+// If cookies were supplied via env (and no explicit jar path), materialise them
+// to a temp file so yt-dlp can use --cookies. Survives a single container life,
+// which is all yt-dlp needs.
+if (config.youtubeCookies && !config.cookieJarPath) {
+  try {
+    const p = path.join(os.tmpdir(), 'yt-cookies.txt');
+    fs.writeFileSync(p, config.youtubeCookies, { mode: 0o600 });
+    config.cookieJarPath = p;
+  } catch {
+    // non-fatal: fall back to no cookies
+  }
 }
